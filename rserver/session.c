@@ -120,7 +120,7 @@ static int do_bind(int lcsock, struct sockaddr *addr, socklen_t addrlen) {
 	session_table[lcsock].stat = RSRV_STAT_BOUND;
 	session_table[lcsock].sock = rssock;
 
-	return send_mesg(lcsock, RSRV_ACK_BIND, 0);
+	return send_mesg(lcsock, RSRV_ACK_BIND, rssock);
 }
 
 static int do_listen(int lcsock, int backlog) {
@@ -274,19 +274,66 @@ static int do_connect(int lcsock, int rcsock) {
 
 	ret = 0;
 last:
-//	close(lcsock); // return 後に削除される
-//	close(rcsock);
 	logger(RSRV_LOG_DEBUG, "do_connect(%d,%d): finished(%d)\n", lcsock, rcsock, ret);
 
+	return ret;
+}
+
+static int do_select(int lcsock, fd_set *rfds) {
+	rsrv_mesg_t msg;
+	struct iovec iov[2];
+	int iovcnt;
+	int stat;
+	int ret;
+
+	logger(RSRV_LOG_DEBUG, "do_select(%d): started\n", lcsock);
+
+	stat = session_table[lcsock].stat;
+	if (stat != RSRV_STAT_INIT) {
+		logger(RSRV_LOG_ERROR, "do_select(%d): session status is not initialized %d\n", lcsock, stat);
+		send_mesg(lcsock, RSRV_NAK, -1);
+		ret = -1;
+		goto last;
+	}
+{
+	int i;	
+	for (i = 0; i < FD_SETSIZE; i++) {
+		if (FD_ISSET(i, rfds)) {
+			logger(RSRV_LOG_DEBUG, "do_select(%d): rfds %d set\n", lcsock, i);
+		}
+	}
+}
+
+	ret = select(FD_SETSIZE, rfds, NULL, NULL, NULL);
+	if (ret < 0) {
+		logger(RSRV_LOG_ERROR, "do_select(%d): %s\n", lcsock, strerror(errno));	
+		send_mesg(lcsock, RSRV_NAK, errno);
+		goto last;
+	}
+
+	msg.rm_typ = htonl(RSRV_ACK_SELECT);
+	msg.rm_val = htonl(sizeof(fd_set));
+	iov[0].iov_base = &msg;
+	iov[0].iov_len	= sizeof msg;
+	iov[1].iov_base = rfds;
+	iov[1].iov_len	= sizeof(fd_set);
+	iovcnt = ARRAY_COUNT(iov);
+	ret = writev(lcsock, iov, iovcnt);
+	if (ret < 0) {
+		logger(RSRV_LOG_ERROR, "do_select(%d): writev(): %s\n", lcsock, strerror(errno));
+		goto last;
+	}
+
+last:
 	return ret;
 }
 
 void *start_session(void *arg) {
 	int lcsock = *(int *)arg;
 	rsrv_mesg_t msg;
-	struct sockaddr addr;
 	struct iovec iov[2];
 	int iovcnt;
+	char buf[BUFSIZ];
 	int req;
 	int ret;
 	logger(RSRV_LOG_DEBUG, "start_session(%d): thread started\n", lcsock);
@@ -296,8 +343,8 @@ void *start_session(void *arg) {
 
 	iov[0].iov_base = &msg;
 	iov[0].iov_len	= sizeof msg;
-	iov[1].iov_base = &addr;
-	iov[1].iov_len	= sizeof addr;
+	iov[1].iov_base = buf;
+	iov[1].iov_len	= sizeof buf;
 	iovcnt = ARRAY_COUNT(iov);
 
 	for (;;) {
@@ -313,7 +360,7 @@ void *start_session(void *arg) {
 		req = ntohl(msg.rm_typ);
 		switch (req) {
 		case RSRV_REQ_BIND:
-			do_bind(lcsock, &addr, sizeof addr);
+			do_bind(lcsock, (struct sockaddr *)buf, ntohl(msg.rm_val));
 			break;
 		case RSRV_REQ_LISTEN:
 			do_listen(lcsock, ntohl(msg.rm_val));
@@ -323,6 +370,9 @@ void *start_session(void *arg) {
 			break;
 		case RSRV_REQ_CONNECT:
 			do_connect(lcsock, ntohl(msg.rm_val));
+			goto last;
+		case RSRV_REQ_SELECT:
+			do_select(lcsock, (fd_set *)buf); 
 			goto last;
 		default:
 			logger(RSRV_LOG_ERROR, "start_session(%d): unexpected request received: %d\n", lcsock, req);

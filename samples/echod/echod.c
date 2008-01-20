@@ -89,7 +89,15 @@ int main(int argc, char *argv[]) {
 
 	for (;;) {
 		pthread_t thread;
+		fd_set rfds;
 		int cso;
+
+		FD_ZERO(&rfds);
+		FD_SET(so, &rfds);
+		ret = rs_select(so+1, &rfds, (struct sockaddr *)&rsaddr, sizeof rsaddr);
+		if (ret < 0) {
+			exit(EXIT_FAILURE);
+		}
 
 		cso = rs_accept(so, NULL, NULL);
 		if (cso < 0) {

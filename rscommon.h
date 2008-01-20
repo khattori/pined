@@ -9,7 +9,9 @@
 #define RSRV_ACK_ACCEPT		5	/* ACK_ACCEPT(sock_num) */
 #define RSRV_REQ_CONNECT	6	/* REQ_CONN(sock_num) */
 #define RSRV_ACK_CONNECT	7	/* ACK_CONN(peeraddr) */
-#define RSRV_NAK		8	/* NAK(errno) */
+#define RSRV_REQ_SELECT		8	/* REQ_SELECT(sock list) */
+#define RSRV_ACK_SELECT		9	/* ACK_SELECT(sock list) */
+#define RSRV_NAK		10	/* NAK(errno) */
 
 #define RSRV_DEFAULT_PORT	8888
 
