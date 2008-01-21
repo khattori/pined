@@ -295,14 +295,6 @@ static int do_select(int lcsock, fd_set *rfds) {
 		ret = -1;
 		goto last;
 	}
-{
-	int i;	
-	for (i = 0; i < FD_SETSIZE; i++) {
-		if (FD_ISSET(i, rfds)) {
-			logger(RSRV_LOG_DEBUG, "do_select(%d): rfds %d set\n", lcsock, i);
-		}
-	}
-}
 
 	ret = select(FD_SETSIZE, rfds, NULL, NULL, NULL);
 	if (ret < 0) {
