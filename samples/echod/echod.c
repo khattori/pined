@@ -60,7 +60,7 @@ last:
 int main(int argc, char *argv[]) {
 	int so;
 	int ret;
-	struct sockaddr_in rsaddr, myaddr;
+	struct sockaddr_in rsaddr;
 
 	signal(SIGPIPE, SIG_IGN);
 	so = socket(AF_INET, SOCK_STREAM, 0);
@@ -73,11 +73,7 @@ int main(int argc, char *argv[]) {
 	rsaddr.sin_family = AF_INET;
 	rsaddr.sin_port   = htons(rsport);
 	rsaddr.sin_addr.s_addr   = getaddrbyname(rshost);
-	memset(&myaddr, 0, sizeof myaddr);
-	myaddr.sin_family      = AF_INET;
-	myaddr.sin_port        = htons(PORT);
-	myaddr.sin_addr.s_addr = INADDR_ANY;
-	ret = rs_bind(so, (struct sockaddr *)&myaddr, sizeof myaddr, (struct sockaddr *)&rsaddr, sizeof rsaddr);
+	ret = rs_bind(so, PORT, (struct sockaddr *)&rsaddr, sizeof rsaddr);
 	if (ret < 0) {
 		exit(EXIT_FAILURE);
 	}
@@ -94,7 +90,7 @@ int main(int argc, char *argv[]) {
 
 		FD_ZERO(&rfds);
 		FD_SET(so, &rfds);
-		ret = rs_select(so+1, &rfds, (struct sockaddr *)&rsaddr, sizeof rsaddr);
+		ret = select(so+1, &rfds, NULL, NULL, NULL);
 		if (ret < 0) {
 			exit(EXIT_FAILURE);
 		}

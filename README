@@ -1,1 +1,23 @@
 Rserver is a proxy server to enables to access a private server inside a firewall. 
+
+
+[API]
+
+- int rs_bind(int sock, struct sockaddr *my_addr, socklen_t myaddr_len, struct sockaddr *rs_addr, socklen_t rs_addrlen)
+
+rs_bind gives the socket sock the local address my_addr remote server address rs_addr.
+my_addr is myaddr_len bytes long.
+rs_addr is rsaddr_len bytes long.
+rs_bind connects to a remote server and requests to bind remote server socket to myaddr.
+
+- int rs_listen(int sock, int backlog)
+
+int rs_accept(int ssock, struct sockaddr *caddr, socklen_t *caddr_len);
+
+int rs_select(int n, fd_set *rfds, struct sockaddr *rs_addr, socklen_t rs_addrlen);
+
+[Protocol]
+
+rs_bind
+
+

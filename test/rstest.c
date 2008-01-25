@@ -30,21 +30,14 @@ void test_setup(int n) {
 
 void test_rsbind(int so) {
 	int ret;
-	struct sockaddr_in myaddr;
 	struct sockaddr_in rsaddr;
-
-	memset(&myaddr, 0, sizeof myaddr);
-	myaddr.sin_family = AF_INET;
-	myaddr.sin_addr.s_addr = INADDR_ANY;
-	myaddr.sin_port = htons(TEST_PORT);
 
 	memset(&rsaddr, 0, sizeof rsaddr);
 	rsaddr.sin_family = AF_INET;
 	rsaddr.sin_addr.s_addr = inet_addr(TEST_RSHOST);
 	rsaddr.sin_port = htons(TEST_RSPORT);
 
-	ret = rs_bind(so, (struct sockaddr *)&myaddr, sizeof myaddr,
-			(struct sockaddr *)&rsaddr, sizeof rsaddr);
+	ret = rs_bind(so, TEST_PORT, (struct sockaddr *)&rsaddr, sizeof rsaddr);
 	assert(ret == 0);
 }
 
