@@ -99,14 +99,14 @@ int rs_accept(int ssock, struct sockaddr *caddr, socklen_t *caddr_len) {
 	int rmtyp, rmval;
 	int ret;
 
-	ret = expect_reply(ssock, RSRV_ACK, NULL);
-	if (ret != 0) {
-		fprintf(stderr, "rs_accept: failure in remote accept: %d\n", ret);
-		return -1;
-	}
 	ret = send_mesg(ssock, RSRV_REQ_ACCEPT, 0);
 	if (ret < 0) {
 		fprintf(stderr, "rs_accept: failure to send RSRV_REQ_ACCEPT\n");
+		return -1;
+	}
+	ret = expect_reply(ssock, RSRV_ACK, NULL);
+	if (ret != 0) {
+		fprintf(stderr, "rs_accept: failure in remote accept: %d\n", ret);
 		return -1;
 	}
 	ret = expect_reply(ssock, RSRV_ACK_ACCEPT, &conn_id);
@@ -114,7 +114,6 @@ int rs_accept(int ssock, struct sockaddr *caddr, socklen_t *caddr_len) {
 		fprintf(stderr, "rs_accept: failure in remote accept: %d\n", ret);
 		return -1;
 	}
-
 	csock = socket(AF_INET, SOCK_STREAM, 0);
 	if (csock < 0) {
 		perror("rs_accept: socket()");
