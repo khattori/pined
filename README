@@ -1,23 +1,107 @@
-Rserver is a proxy server to enables to access a private server inside a firewall. 
+************************************************************************
+ [RServer]
+                                README
+ $Id$
+************************************************************************
+ 
+RServer is a proxy server to enables to access a private server inside a firewall. 
 
 
-[API]
+ Directories
+=============
 
-- int rs_bind(int sock, struct sockaddr *my_addr, socklen_t myaddr_len, struct sockaddr *rs_addr, socklen_t rs_addrlen)
+A source package rserver-x.x.x.tar.gz is expanded into the following directories:
 
-rs_bind gives the socket sock the local address my_addr remote server address rs_addr.
-my_addr is myaddr_len bytes long.
+  rserver-x.x.x/README		this file
+                rscommon.h	common header file
+                librssock/	library source files
+                rserver/	rserver source files  
+                samples/	sample programs
+                test/		test files
+
+ Platform
+==========
+
+Currently RServer is available under only Linux.
+
+
+ Install
+=========
+
+- librssock
+
+% cd librssock
+% make
+% sudo make install
+
+- rserver
+
+% cd rserver
+% make
+% sudo make install
+
+
+ API
+=====
+
+RServer library provides rs_* functions, which serve as corresponding socket API functions.
+
+- int rs_bind(int sock, int my_port, struct sockaddr *rs_addr, socklen_t rs_addrlen)
+
+rs_bind gives the socket sock the local port my_port remote server address rs_addr.
+my_port is 
 rs_addr is rsaddr_len bytes long.
-rs_bind connects to a remote server and requests to bind remote server socket to myaddr.
+Rserver is a proxy server to enables to access a private server inside a firewall. 
 
 - int rs_listen(int sock, int backlog)
 
-int rs_accept(int ssock, struct sockaddr *caddr, socklen_t *caddr_len);
+- int rs_accept(int ssock, struct sockaddr *caddr, socklen_t *caddr_len);
 
-int rs_select(int n, fd_set *rfds, struct sockaddr *rs_addr, socklen_t rs_addrlen);
+ Protocol
+==========
 
-[Protocol]
+rs_bind(s,port,addr):
+           +----------+        +---------+        +--------+
+           |PrivateSrv|        | RServer |        | Client |
+           +----------+        +---------+        +--------+
+                |                   |                  |
+                |                   |                  |
+connect(s,addr) |  REQ_BIND<port>   |ls=accept(s)      |
+                |------------------>|                  |
+                |                   |rs=socket()       |
+                |     ACK_BIND      |bind(rs,port)     |
+                |<------------------|                  |
+                |                   |                  |
+                |                   |                  |
 
-rs_bind
+rs_listen(s,bl):
+                |                   |                  |
+                |  REQ_LISTEN(bl)   |                  |
+                |------------------>|                  |
+                |    ACK_LISTEN     |listen(rs,bl)     |
+                |<------------------|                  |
+                |                   |select(ls or rs)  |
+                |                   |                  |
 
+Connection request from client:
+                |                   |  TCP CONNECTION  |
+                |    ACCEPTABLE     |<---------------->|connect()
+                |<------------------|set acceptable    |
+                |                   |                  |
 
+rs_accept(s):
+                |                   |                  |
+                |    REQ_ACCEPT     |                  |
+                |------------------>|if acceptable     |
+                |  ACK_ACCEPT<rs'>  |  rs'=accept(rs)  |
+                |<------------------|                  |
+                |                   |                  |
+connect(s,addr) |-------------------->|ls'=accept(s)   |
+                | REQ_CONNECT<rs'>  | |                |
+                |-------------------->|ls'<=>rs'       |
+                |   ACK_CONNECT     | |                |
+                |<--------------------|                |
+                |                   | |                |
+
+---
+Copyright (C) 2008- HATTORI All Rights Reserved.

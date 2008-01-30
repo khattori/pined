@@ -13,7 +13,7 @@
 #include "session.h"
 #include "logger.h"
 
-static char program_string[] = "hserver";
+static char program_string[] = "rserver";
 static char version_string[] = "0.0.1";
 
 int g_rs_port = RSRV_DEFAULT_PORT;

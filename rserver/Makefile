@@ -1,3 +1,5 @@
+PREFIX	= /usr/local
+
 TARGET	= rserver
 SRCS	= \
 	rserver.c	\
@@ -11,6 +13,9 @@ OBJS	= $(SRCS:.c=.o)
 
 $(TARGET)	: $(OBJS)
 	$(CC) -g -o $@ $(OBJS) $(LIBS)
+
+install	:
+	cp $(TARGET) $(PREFIX)/bin/$(TARGET)
 
 clean	:
 	rm -fr $(OBJS) $(TARGET)
