@@ -1,16 +1,36 @@
-************************************************************************
+****************************************************************
  [RServer]
-                                README
+                            README
  $Id$
-************************************************************************
+****************************************************************
  
-RServer is a proxy server to enables to access a private server inside a firewall. 
+RServer is a proxy server to enables to access a private server inside
+a firewall.
+
+In your server application, replace socket API call, such as bind and
+accept, into wrapper call (provided in librssock) for these APIs so
+that the server register its listening port to an RServer. The RServer
+will create a server socket behalf of the server in a private
+network. The RServer relays a connection to the private sever when a
+client connect to the RServer.
+
+
+A typical use of RServer is as follows:
+
+                                     FIREWALL
+                       <internet>       ||     <private network>
+ +--------+       +---------+           ||        +--------+
+ | Client |+---->o| RServer |o<---------||--------| Server |+
+ +--------+|+     +---------+ port 8888 ||        +--------+|
+  +--------+|                 (default) ||         +--------+
+   +--------+
 
 
  Directories
 =============
 
-A source package rserver-x.x.x.tar.gz is expanded into the following directories:
+A source package rserver-x.x.x.tar.gz is expanded into the following
+directories:
 
   rserver-x.x.x/README		this file
                 rscommon.h	common header file
@@ -44,18 +64,50 @@ Currently RServer is available under only Linux.
  API
 =====
 
-RServer library provides rs_* functions, which serve as corresponding socket API functions.
+RServer library provides rs_* functions, which serve as corresponding
+socket API functions.
 
 - int rs_bind(int sock, int my_port, struct sockaddr *rs_addr, socklen_t rs_addrlen)
-
-rs_bind gives the socket sock the local port my_port remote server address rs_addr.
-my_port is 
-rs_addr is rsaddr_len bytes long.
-Rserver is a proxy server to enables to access a private server inside a firewall. 
 
 - int rs_listen(int sock, int backlog)
 
 - int rs_accept(int ssock, struct sockaddr *caddr, socklen_t *caddr_len);
+
+
+ Example
+=========
+
+The following example program illustrates the use of RServer library
+in typical server application.
+
+	// create a socket for listening
+	so = socket(AF_INET, SOCK_STREAM, 0);
+	if (so < 0) {
+		perror("socket()");
+		exit(EXIT_FAILURE);
+	}
+	// set rsaddr to the address of RServer
+	memset(&rsaddr, 0, sizeof rsaddr);
+	rsaddr.sin_family      = AF_INET;
+	rsaddr.sin_port        = htons(8888);
+	rsaddr.sin_addr.s_addr = rserver_ipaddr;
+
+	port = ...; // set a port number for listening socket
+	ret = rs_bind(so, port, (struct sockaddr *)&rsaddr, sizeof rsaddr);
+	if (ret < 0) {
+		exit(EXIT_FAILURE);
+	}
+
+	ret = rs_listen(so, SOMAXCONN);
+	if (ret < 0) {
+		exit(EXIT_FAILURE);
+	}
+	// wait connection from client
+	cso = rs_accept(so, NULL, NULL);
+	if (cso < 0) {
+		exit(EXIT_FAILURE);
+	}
+
 
  Protocol
 ==========
