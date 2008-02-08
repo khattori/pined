@@ -8,6 +8,8 @@
 #define RSRV_LOG_DEBUG	4
 #define RSRV_LOG_MAX	5
 
+
+int log_init(char *log_file);
 void log_setlevel(int level);
 void logger(int level, char format[], ...);
 

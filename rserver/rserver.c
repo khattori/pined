@@ -15,13 +15,16 @@
 
 static char program_string[] = "rserver";
 static char version_string[] = "0.0.1";
+static char *log_file = "/var/log/rserverlog";
 
 int g_rs_port = RSRV_DEFAULT_PORT;
+int g_debug_mode = 0;
 
 static void print_usage(void) {
 	fprintf(stderr, "Usage: %s [OPTION]... \n\n", program_string);
 	fprintf(stderr, "  -p PORT\tspecify port number to bind\n");
 	fprintf(stderr, "  -l LEVEL\tset log level\n");
+	fprintf(stderr, "  -d     \texecute in debug mode\n");
 	fprintf(stderr, "  -h     \tdisplay this help and exit\n");
 	fprintf(stderr, "  -v     \toutput version information and exit\n");
 }
@@ -93,7 +96,7 @@ int main(int argc, char *argv[]) {
 	int opt;
 	int sock;
 
-	while ((opt = getopt(argc, argv, "vhp:l:")) != -1) {
+	while ((opt = getopt(argc, argv, "vhdp:l:")) != -1) {
 		switch (opt) {
 		case 'v':
 			print_version();
@@ -101,6 +104,10 @@ int main(int argc, char *argv[]) {
 		case 'h':
 			print_usage();
 			return 0;
+		case 'd':
+			g_debug_mode = !0;
+			log_file = NULL;
+			break;
 		case 'p':
 			g_rs_port = atoi(optarg);
 			break;
@@ -116,6 +123,18 @@ int main(int argc, char *argv[]) {
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	if (log_init(log_file) < 0) {
+		exit(EXIT_FAILURE);
+	}
+	if (!g_debug_mode) {
+		if (daemon(0, 0) < 0) {
+			perror("daemon()");
+			exit(EXIT_FAILURE);
+		}
+	}
+
+	logger(RSRV_LOG_INFO, "start rserver");
 
 	sock = create_socket();
 	if (sock < 0) {
