@@ -2,7 +2,6 @@
  [RServer]
                             README
 
- $Id$
 ****************************************************************
  
 RServer is a proxy server to enables to access a private server inside
@@ -158,3 +157,4 @@ connect(s,addr) |-------------------->|ls'=accept(s)   |
 
 ---
 Copyright (C) 2008- HATTORI All Rights Reserved.
+$Id$
