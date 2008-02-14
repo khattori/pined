@@ -8,15 +8,15 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <rssock.h>
+#include <pinesock.h>
 
 #define PORT 10007
 
-#define DEFAULT_RSPORT 8888
-#define DEFAULT_RSHOST "localhost"
+#define DEFAULT_PSPORT 8888
+#define DEFAULT_PSHOST "localhost"
 
-int  rsport = DEFAULT_RSPORT;
-char *rshost = DEFAULT_RSHOST;
+int  psport = DEFAULT_PSPORT;
+char *pshost = DEFAULT_PSHOST;
 
 
 static in_addr_t getaddrbyname(char *hostname) {
@@ -60,7 +60,7 @@ last:
 int main(int argc, char *argv[]) {
 	int so;
 	int ret;
-	struct sockaddr_in rsaddr;
+	struct sockaddr_in psaddr;
 
 	signal(SIGPIPE, SIG_IGN);
 	so = socket(AF_INET, SOCK_STREAM, 0);
@@ -69,16 +69,16 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	memset(&rsaddr, 0, sizeof rsaddr);
-	rsaddr.sin_family = AF_INET;
-	rsaddr.sin_port   = htons(rsport);
-	rsaddr.sin_addr.s_addr   = getaddrbyname(rshost);
-	ret = rs_bind(so, PORT, (struct sockaddr *)&rsaddr, sizeof rsaddr);
+	memset(&psaddr, 0, sizeof psaddr);
+	psaddr.sin_family = AF_INET;
+	psaddr.sin_port   = htons(psport);
+	psaddr.sin_addr.s_addr   = getaddrbyname(pshost);
+	ret = ps_bind(so, PORT, (struct sockaddr *)&psaddr, sizeof psaddr);
 	if (ret < 0) {
 		exit(EXIT_FAILURE);
 	}
 
-	ret = rs_listen(so, SOMAXCONN);
+	ret = ps_listen(so, SOMAXCONN);
 	if (ret < 0) {
 		exit(EXIT_FAILURE);
 	}
@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
 			exit(EXIT_FAILURE);
 		}
 
-		cso = rs_accept(so, NULL, NULL);
+		cso = ps_accept(so, NULL, NULL);
 		if (cso < 0) {
 			exit(EXIT_FAILURE);
 		}

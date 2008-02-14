@@ -2,7 +2,7 @@ TARGET	= echod
 SRCS	= echod.c
 
 CFLAGS	= -Wall -g 
-LIBS	= -lpthread -lrssock
+LIBS	= -lpthread -lpinesock
 
 OBJS	= $(SRCS:.c=.o)
 
