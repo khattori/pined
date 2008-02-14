@@ -1,0 +1,32 @@
+<html>
+<head>
+
+<title>Pined: A Proxy Server Through Firewall</title>
+</head>
+<body>
+<h2>A Proxy Server Through Firewall</h2>
+<h1>Pined version 0.1</h1>
+Copyright (c) 2008 by Kenta Hattori
+<br>hattori@tatta.org
+
+<p>
+Pined is a proxy server to enables to access a private server inside a
+firewall.
+</p>
+
+<p>
+In your server application, replace socket API call, such as bind and
+accept, into wrapper call (provided in librssock) for these APIs so
+that the server register its listening port to an Pined. The Pined
+will create a server socket behalf of the server in a private
+network. The Pined relays a connection to the private sever when a
+client connect to the Pined.
+</p>
+
+<hr />
+<address>
+2008/02/16 last updated.
+<a href="mailto:hattori@tatta.org">send bug report</a>
+</address>
+</body>
+</html>

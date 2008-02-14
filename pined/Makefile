@@ -1,8 +1,8 @@
 PREFIX	= /usr/local
 
-TARGET	= rserver
+TARGET	= pined
 SRCS	= \
-	rserver.c	\
+	pined.c	\
 	session.c	\
 	logger.c
 

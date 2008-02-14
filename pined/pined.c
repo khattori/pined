@@ -13,9 +13,9 @@
 #include "session.h"
 #include "logger.h"
 
-static char program_string[] = "rserver";
-static char version_string[] = "0.0.1";
-static char *log_file = "/var/log/rserverlog";
+static char program_string[] = "pined";
+static char version_string[] = "0.1";
+static char *log_file = "/var/log/pinedlog";
 
 int g_rs_port = RSRV_DEFAULT_PORT;
 int g_debug_mode = 0;
@@ -66,7 +66,7 @@ static int create_socket(void) {
 	return sock;
 }
 
-static int do_rserver(int ssock) {
+static int do_pined(int ssock) {
 	pthread_t thread;
 	int rsock;
 	int err;
@@ -74,17 +74,17 @@ static int do_rserver(int ssock) {
 	for (;;) {
 		rsock = accept(ssock, NULL, 0);
 		if (rsock < 0) {
-			logger(RSRV_LOG_ERROR, "do_rserver: accept(): %s\n", strerror(errno));
+			logger(RSRV_LOG_ERROR, "do_pined: accept(): %s\n", strerror(errno));
 			return -1;
 		}
 		err = pthread_create(&thread, NULL, start_session, &rsock);
 		if (err != 0) {
-			logger(RSRV_LOG_ERROR, "do_rserver: pthread_create(): %s\n", strerror(err));
+			logger(RSRV_LOG_ERROR, "do_pined: pthread_create(): %s\n", strerror(err));
 			return -1;
 		}
 		err = pthread_detach(thread);
 		if (err != 0) {
-			logger(RSRV_LOG_ERROR, "do_rserver: pthread_detach(): %s\n", strerror(err));	
+			logger(RSRV_LOG_ERROR, "do_pined: pthread_detach(): %s\n", strerror(err));	
 			return -1;
 		}
 	}
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	logger(RSRV_LOG_INFO, "start rserver");
+	logger(RSRV_LOG_INFO, "start pined");
 
 	sock = create_socket();
 	if (sock < 0) {
@@ -143,6 +143,6 @@ int main(int argc, char *argv[]) {
 
 	signal(SIGPIPE, SIG_IGN);
 
-	return do_rserver(sock);
+	return do_pined(sock);
 }
 
