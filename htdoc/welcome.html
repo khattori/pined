@@ -6,8 +6,6 @@
 <body>
 <h2>A Proxy Server Through Firewall</h2>
 <h1>Pined version 0.0.1</h1>
-Copyright (c) 2008 by Kenta Hattori
-<br>hattori@tatta.org
 
 <p>
 Pined is a proxy server to enables to access a private server inside a
@@ -16,15 +14,57 @@ firewall.
 
 <p>
 In your server application, replace socket API call, such as bind and
-accept, into wrapper call (provided in librssock) for these APIs so
+accept, into wrapper call (provided in libpinesock) for these APIs so
 that the server register its listening port to an Pined. The Pined
 will create a server socket behalf of the server in a private
 network. The Pined relays a connection to the private sever when a
 client connect to the Pined.
 </p>
 
+<p>
+A typical use of pined is as follows:
+</p>
+
+<p><img src="pined-architecture.png" alt="Typical use of pined" /></p>
+
+<hr />
+<h3>Download</h3>
+<ul>
+<li><a href="./download/pined-0.0.1.tar.gz">pined ver.0.0.1</a></li>
+</ul>
+
+<hr />
+<h3>Example</h3>
+
+The following example program illustrates the use of pined library
+in typical server application.
+<pre>
+	// create a socket for listening
+	so = socket(AF_INET, SOCK_STREAM, 0);
+
+	// set psaddr to the address of pined
+	memset(&psaddr, 0, sizeof psaddr);
+	psaddr.sin_family      = AF_INET;
+	psaddr.sin_port        = htons(8888);
+	psaddr.sin_addr.s_addr = pserver_ipaddr;
+
+	// requet to pined to bind socket with port 10000
+	ps_bind(so, 10000, (struct sockaddr *)&psaddr, sizeof psaddr);
+
+	// request to listen
+	ps_listen(so, SOMAXCONN);
+
+	// wait connection from client
+	cso = ps_accept(so, NULL, NULL);
+
+	// serve for client
+	read(cso,...)
+	...
+</pre>
+
 <hr />
 <address>
+Copyright (c) 2008 by Kenta Hattori
 <a href="mailto:hattori@tatta.org">contact or send bug report</a>
 </address>
 <script language="JavaScript">
