@@ -50,16 +50,25 @@ Currently pined is available under only Linux.
 
 - libpinesock
 
-% cd libpinesock
-% make
-% sudo make install
+ $ cd libpinesock
+ $ make
+ $ sudo make install
 
 - pined
 
-% cd pined
-% make
-% sudo make install
+ $ cd pined
+ $ make
+ $ sudo make install
 
+
+ Starting pined
+================
+
+As daemon in the background:
+  $ pined
+
+or without detaching from the console (debug mode):
+  $ pined -d
 
  API
 =====

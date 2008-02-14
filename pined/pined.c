@@ -14,7 +14,7 @@
 #include "logger.h"
 
 static char program_string[] = "pined";
-static char version_string[] = "0.1";
+static char version_string[] = "0.0.1";
 static char *log_file = "/var/log/pinedlog";
 
 int g_rs_port = PINE_DEFAULT_PORT;
