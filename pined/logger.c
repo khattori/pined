@@ -5,7 +5,7 @@
 
 #include "logger.h"
 
-static int s_log_level = RSRV_LOG_INFO;
+static int s_log_level = PINE_LOG_INFO;
 static FILE *s_log_out_p;
 
 static char *s_log_level_table[] = {

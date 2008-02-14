@@ -8,16 +8,17 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <netinet/in.h>
-#include "rscommon.h"
+
+#include "pinecommon.h"
 #include "session.h"
 #include "logger.h"
 
-#define RSRV_STAT_INIT		0
-#define RSRV_STAT_BOUND		1
-#define RSRV_STAT_LISTENING	2
-#define RSRV_STAT_ACCEPTING	3
-#define RSRV_STAT_CONNECTING	4
-#define RSRV_STAT_ACCEPTABLE    5
+#define PINE_STAT_INIT		0
+#define PINE_STAT_BOUND		1
+#define PINE_STAT_LISTENING	2
+#define PINE_STAT_ACCEPTING	3
+#define PINE_STAT_CONNECTING	4
+#define PINE_STAT_ACCEPTABLE    5
 
 typedef struct stbl_ent {
     int stat;	
@@ -38,15 +39,15 @@ static void close_session(int so) {
 }
 
 static int send_mesg(int so, int type, int value) {
-    rsrv_mesg_t msg;
+    pine_mesg_t msg;
     int ret;
 
-    msg.rm_typ = htonl(type);
-    msg.rm_val = htonl(value);
+    msg.pm_typ = htonl(type);
+    msg.pm_val = htonl(value);
 
     ret = write(so, &msg, sizeof msg);
     if (ret < 0) {
-	logger(RSRV_LOG_ERROR, "send_mesg: write(): %s\n", strerror(errno));
+	logger(PINE_LOG_ERROR, "send_mesg: write(): %s\n", strerror(errno));
 	return -1;
     }
 
@@ -58,7 +59,7 @@ static int wait_acceptable(int lcsock, int rssock) {
     int n;
     int ret;
 
-    logger(RSRV_LOG_DEBUG, "wait_acceptable(%d,%d) started\n", lcsock, rssock);
+    logger(PINE_LOG_DEBUG, "wait_acceptable(%d,%d) started\n", lcsock, rssock);
 
     FD_ZERO(&rfds);
     FD_SET(lcsock, &rfds);
@@ -66,17 +67,17 @@ static int wait_acceptable(int lcsock, int rssock) {
     n = MAX(lcsock, rssock) + 1;
     ret = select(n, &rfds, NULL, NULL, NULL);
     if (ret < 0) {
-	logger(RSRV_LOG_ERROR, "wait_acceptable(%d,%d): select(): %s\n", lcsock, rssock, strerror(errno));
-	send_mesg(lcsock, RSRV_NAK, -1);
+	logger(PINE_LOG_ERROR, "wait_acceptable(%d,%d): select(): %s\n", lcsock, rssock, strerror(errno));
+	send_mesg(lcsock, PINE_NAK, -1);
 	return -1;
     }
     if (FD_ISSET(rssock, &rfds)) {
-	session_table[rssock].stat = RSRV_STAT_ACCEPTABLE;
-	send_mesg(lcsock, RSRV_ACK, 0);
-        logger(RSRV_LOG_DEBUG, "wait_acceptable(%d,%d): become acceptabled\n", lcsock, rssock);
+	session_table[rssock].stat = PINE_STAT_ACCEPTABLE;
+	send_mesg(lcsock, PINE_ACK, 0);
+        logger(PINE_LOG_DEBUG, "wait_acceptable(%d,%d): become acceptabled\n", lcsock, rssock);
     }
 
-    logger(RSRV_LOG_DEBUG, "wait_acceptable(%d,%d) completed\n", lcsock, rssock);
+    logger(PINE_LOG_DEBUG, "wait_acceptable(%d,%d) completed\n", lcsock, rssock);
 
     return 0;
 }
@@ -88,15 +89,15 @@ static void *transfer(void *arg) {
     int total, remain, len;
     int offset;
   
-    logger(RSRV_LOG_DEBUG, "transfer(%d,%d): started\n", from, to);
+    logger(PINE_LOG_DEBUG, "transfer(%d,%d): started\n", from, to);
 
     for (;;) {
 	total = read(from, buf, sizeof buf);
 	if (total < 0) {
-	    logger(RSRV_LOG_DEBUG, "transfer(%d,%d): read(): %s\n", from, to, strerror(errno));
+	    logger(PINE_LOG_DEBUG, "transfer(%d,%d): read(): %s\n", from, to, strerror(errno));
 	    break;
 	} else if (total == 0) {
-	    logger(RSRV_LOG_DEBUG, "transfer(%d,%d): connection closed by peer\n", from, to);
+	    logger(PINE_LOG_DEBUG, "transfer(%d,%d): connection closed by peer\n", from, to);
 	    break;
 	}
 
@@ -105,7 +106,7 @@ static void *transfer(void *arg) {
 	do {
 	    len = write(to, buf + offset, remain);
 	    if (len < 0) {
-		logger(RSRV_LOG_DEBUG, "transfer(%d,%d): write(): %s\n", from, to, strerror(errno));
+		logger(PINE_LOG_DEBUG, "transfer(%d,%d): write(): %s\n", from, to, strerror(errno));
 		goto last;
 	    }
 	    remain -= len;
@@ -113,7 +114,7 @@ static void *transfer(void *arg) {
     }
 
  last:
-    logger(RSRV_LOG_DEBUG, "transfer(%d,%d): finished\n", from, to);
+    logger(PINE_LOG_DEBUG, "transfer(%d,%d): finished\n", from, to);
     shutdown(to, SHUT_WR);
     return NULL;
 }
@@ -126,16 +127,16 @@ static int do_bind(int lcsock, int port) {
 
     rssock = socket(AF_INET, SOCK_STREAM, 0);
     if (rssock < 0) {
-	logger(RSRV_LOG_ERROR, "do_bind(%d): socket(): %s\n", lcsock, strerror(errno));
-	send_mesg(lcsock, RSRV_NAK, errno);
+	logger(PINE_LOG_ERROR, "do_bind(%d): socket(): %s\n", lcsock, strerror(errno));
+	send_mesg(lcsock, PINE_NAK, errno);
 	return -1;
     }
-    logger(RSRV_LOG_DEBUG, "do_bind(%d): create socket for reception: %d for port %d\n", lcsock, rssock, port);
+    logger(PINE_LOG_DEBUG, "do_bind(%d): create socket for reception: %d for port %d\n", lcsock, rssock, port);
     option = 1;
     ret = setsockopt(rssock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
     if (ret < 0) {
-	logger(RSRV_LOG_ERROR, "do_bind(%d): setsockopt(): %s\n", lcsock, strerror(errno));
-	send_mesg(lcsock, RSRV_NAK, errno);
+	logger(PINE_LOG_ERROR, "do_bind(%d): setsockopt(): %s\n", lcsock, strerror(errno));
+	send_mesg(lcsock, PINE_NAK, errno);
 	close(rssock);
 	return -1;
     }
@@ -146,15 +147,15 @@ static int do_bind(int lcsock, int port) {
 
     ret = bind(rssock, (struct sockaddr *)&addr, sizeof addr);
     if (ret < 0) {
-	logger(RSRV_LOG_ERROR, "do_bind(%d): bind(): %s\n", lcsock, strerror(errno));
-	send_mesg(lcsock, RSRV_NAK, errno);
+	logger(PINE_LOG_ERROR, "do_bind(%d): bind(): %s\n", lcsock, strerror(errno));
+	send_mesg(lcsock, PINE_NAK, errno);
 	close(rssock);
 	return -1;
     }
-    session_table[lcsock].stat = RSRV_STAT_BOUND;
+    session_table[lcsock].stat = PINE_STAT_BOUND;
     session_table[lcsock].sock = rssock;
-    session_table[rssock].stat = RSRV_STAT_INIT;
-    return send_mesg(lcsock, RSRV_ACK_BIND, rssock);
+    session_table[rssock].stat = PINE_STAT_INIT;
+    return send_mesg(lcsock, PINE_ACK_BIND, rssock);
 }
 
 static int do_listen(int lcsock, int backlog) {
@@ -162,23 +163,23 @@ static int do_listen(int lcsock, int backlog) {
     int rssock; 
     int ret;
 
-    logger(RSRV_LOG_DEBUG, "do_listen(%d): started (backlog=%d)\n", lcsock, backlog);
+    logger(PINE_LOG_DEBUG, "do_listen(%d): started (backlog=%d)\n", lcsock, backlog);
 
-    if (stat != RSRV_STAT_BOUND) {
-	logger(RSRV_LOG_ERROR, "do_listen(%d): unexpected session status %d\n", lcsock, stat);
-	send_mesg(lcsock, RSRV_NAK, -1);
+    if (stat != PINE_STAT_BOUND) {
+	logger(PINE_LOG_ERROR, "do_listen(%d): unexpected session status %d\n", lcsock, stat);
+	send_mesg(lcsock, PINE_NAK, -1);
 	return -1;
     }
 
     rssock = session_table[lcsock].sock;
     ret = listen(rssock, backlog);
     if (ret < 0) {
-	logger(RSRV_LOG_ERROR, "do_listen(%d): listen(): %s\n", lcsock, strerror(errno));
-	send_mesg(lcsock, RSRV_NAK, errno);
+	logger(PINE_LOG_ERROR, "do_listen(%d): listen(): %s\n", lcsock, strerror(errno));
+	send_mesg(lcsock, PINE_NAK, errno);
 	return -1;
     }
-    session_table[lcsock].stat = RSRV_STAT_LISTENING;
-    send_mesg(lcsock, RSRV_ACK_LISTEN, 0);
+    session_table[lcsock].stat = PINE_STAT_LISTENING;
+    send_mesg(lcsock, PINE_ACK_LISTEN, 0);
 
     return wait_acceptable(lcsock, rssock);
 }
@@ -190,37 +191,37 @@ static int do_accept(int lcsock) {
     int rssock = session_table[lcsock].sock;
     int rcsock;
 
-    logger(RSRV_LOG_DEBUG, "do_accept(%d): started\n", lcsock);
+    logger(PINE_LOG_DEBUG, "do_accept(%d): started\n", lcsock);
 
-    if (stat != RSRV_STAT_LISTENING) {
-	logger(RSRV_LOG_ERROR, "do_accept(%d): unexpected session status %d\n", lcsock, stat);
-	send_mesg(lcsock, RSRV_NAK, -1);
+    if (stat != PINE_STAT_LISTENING) {
+	logger(PINE_LOG_ERROR, "do_accept(%d): unexpected session status %d\n", lcsock, stat);
+	send_mesg(lcsock, PINE_NAK, -1);
 	return -1;
     }
 
-    if (session_table[rssock].stat != RSRV_STAT_ACCEPTABLE &&
+    if (session_table[rssock].stat != PINE_STAT_ACCEPTABLE &&
 	wait_acceptable(lcsock, rssock) < 0) {
 	return -1;
     }
-    if (session_table[rssock].stat != RSRV_STAT_ACCEPTABLE) {
+    if (session_table[rssock].stat != PINE_STAT_ACCEPTABLE) {
 	return 0;
     }
 
     rcsock = accept(rssock, &addr, &addrlen);
     if (rcsock < 0) {
-	logger(RSRV_LOG_ERROR, "do_accept(%d): accept(): %s\n", lcsock,  strerror(errno));
-	send_mesg(lcsock, RSRV_NAK, errno);
+	logger(PINE_LOG_ERROR, "do_accept(%d): accept(): %s\n", lcsock,  strerror(errno));
+	send_mesg(lcsock, PINE_NAK, errno);
 	return -1;
     }
-    session_table[rssock].stat = RSRV_STAT_LISTENING;
-    logger(RSRV_LOG_DEBUG, "do_accept(%d): accepted for remote peer: %d\n", lcsock, rcsock);
+    session_table[rssock].stat = PINE_STAT_LISTENING;
+    logger(PINE_LOG_DEBUG, "do_accept(%d): accepted for remote peer: %d\n", lcsock, rcsock);
 
-    if (send_mesg(lcsock, RSRV_ACK_ACCEPT, rcsock) < 0) {
-	logger(RSRV_LOG_ERROR, "do_accept(%d): failure to send reply message\n", lcsock);
+    if (send_mesg(lcsock, PINE_ACK_ACCEPT, rcsock) < 0) {
+	logger(PINE_LOG_ERROR, "do_accept(%d): failure to send reply message\n", lcsock);
 	close(rcsock);
 	return -1;
     }
-    session_table[rcsock].stat = RSRV_STAT_ACCEPTING;
+    session_table[rcsock].stat = PINE_STAT_ACCEPTING;
     session_table[rcsock].addr = addr;
     session_table[rcsock].alen = addrlen;
 
@@ -228,7 +229,7 @@ static int do_accept(int lcsock) {
 }
 
 static int do_connect(int lcsock, int rcsock) {
-    rsrv_mesg_t msg;
+    pine_mesg_t msg;
     struct iovec iov[2];
     int iovcnt;
     pthread_t thr_l2r, thr_r2l;
@@ -236,28 +237,28 @@ static int do_connect(int lcsock, int rcsock) {
     int stat;
     int ret;
 
-    logger(RSRV_LOG_DEBUG, "do_connect(%d,%d): started\n", lcsock, rcsock);
+    logger(PINE_LOG_DEBUG, "do_connect(%d,%d): started\n", lcsock, rcsock);
 
     stat = session_table[lcsock].stat;
-    if (stat != RSRV_STAT_INIT) {
-	logger(RSRV_LOG_ERROR, "do_connect(%d,%d): session status is not initialized %d\n", lcsock, rcsock, stat);
-	send_mesg(lcsock, RSRV_NAK, -1);
+    if (stat != PINE_STAT_INIT) {
+	logger(PINE_LOG_ERROR, "do_connect(%d,%d): session status is not initialized %d\n", lcsock, rcsock, stat);
+	send_mesg(lcsock, PINE_NAK, -1);
 	ret = -1;
 	goto last;
     }
-    session_table[lcsock].stat = RSRV_STAT_ACCEPTING;
+    session_table[lcsock].stat = PINE_STAT_ACCEPTING;
 
     stat = session_table[rcsock].stat;
-    if (stat != RSRV_STAT_ACCEPTING) {
-	logger(RSRV_LOG_ERROR, "do_connect(%d,%d): session status is not accepting %d\n", lcsock, rcsock, stat);
-	send_mesg(lcsock, RSRV_NAK, -1);
+    if (stat != PINE_STAT_ACCEPTING) {
+	logger(PINE_LOG_ERROR, "do_connect(%d,%d): session status is not accepting %d\n", lcsock, rcsock, stat);
+	send_mesg(lcsock, PINE_NAK, -1);
 	ret = -1;
 	goto last;
     }
     session_table[lcsock].sock = rcsock;
 
-    msg.rm_typ = htonl(RSRV_ACK_CONNECT);
-    msg.rm_val = htonl(session_table[rcsock].alen);
+    msg.pm_typ = htonl(PINE_ACK_CONNECT);
+    msg.pm_val = htonl(session_table[rcsock].alen);
     iov[0].iov_base = &msg;
     iov[0].iov_len  = sizeof msg;
     iov[1].iov_base = &session_table[rcsock].addr;
@@ -265,7 +266,7 @@ static int do_connect(int lcsock, int rcsock) {
     iovcnt = ARRAY_COUNT(iov);
     ret = writev(lcsock, iov, iovcnt);
     if (ret < 0) {
-	logger(RSRV_LOG_ERROR, "do_connect(%d,%d): writev(): %s\n", lcsock, rcsock, strerror(errno));
+	logger(PINE_LOG_ERROR, "do_connect(%d,%d): writev(): %s\n", lcsock, rcsock, strerror(errno));
 	goto last;
     }
 
@@ -273,47 +274,47 @@ static int do_connect(int lcsock, int rcsock) {
     l2r[1] = r2l[0] = rcsock;
     ret = pthread_create(&thr_l2r, NULL, transfer, (void *)l2r);
     if (ret != 0) {
-	logger(RSRV_LOG_ERROR, "do_connect(%d,%d): pthread_create(thr_l2r): %s\n",lcsock, rcsock, strerror(ret));
+	logger(PINE_LOG_ERROR, "do_connect(%d,%d): pthread_create(thr_l2r): %s\n",lcsock, rcsock, strerror(ret));
 	ret = -1;
 	goto last;
     }
     ret = pthread_create(&thr_r2l, NULL, transfer, (void *)r2l);
     if (ret != 0) {
-	logger(RSRV_LOG_ERROR, "do_connect(%d,%d): pthread_create(thr_r2l): %s\n",lcsock, rcsock, strerror(ret));
+	logger(PINE_LOG_ERROR, "do_connect(%d,%d): pthread_create(thr_r2l): %s\n",lcsock, rcsock, strerror(ret));
 	ret = -1;
 	goto last;
     }
 
     ret = pthread_join(thr_l2r, NULL);
     if (ret != 0) {
-	logger(RSRV_LOG_ERROR, "do_connect(%d,%d): pthread_join(l2r): %s\n",lcsock, rcsock, strerror(ret));
+	logger(PINE_LOG_ERROR, "do_connect(%d,%d): pthread_join(l2r): %s\n",lcsock, rcsock, strerror(ret));
 	goto last;
     }
     ret = pthread_join(thr_r2l, NULL);
     if (ret != 0) {
-	logger(RSRV_LOG_ERROR, "do_connect(%d,%d): pthread_join(r2l): %s\n",lcsock, rcsock, strerror(ret));
+	logger(PINE_LOG_ERROR, "do_connect(%d,%d): pthread_join(r2l): %s\n",lcsock, rcsock, strerror(ret));
 	ret = -1;
 	goto last;
     }
 
     ret = 0;
  last:
-    logger(RSRV_LOG_DEBUG, "do_connect(%d,%d): finished(%d)\n", lcsock, rcsock, ret);
+    logger(PINE_LOG_DEBUG, "do_connect(%d,%d): finished(%d)\n", lcsock, rcsock, ret);
 
     return ret;
 }
 
 void *start_session(void *arg) {
     int lcsock = *(int *)arg;
-    rsrv_mesg_t msg;
+    pine_mesg_t msg;
     struct iovec iov[2];
     int iovcnt;
     char buf[BUFSIZ];
     int req;
     int ret;
-    logger(RSRV_LOG_DEBUG, "start_session(%d): thread started\n", lcsock);
+    logger(PINE_LOG_DEBUG, "start_session(%d): thread started\n", lcsock);
 
-    session_table[lcsock].stat = RSRV_STAT_INIT;
+    session_table[lcsock].stat = PINE_STAT_INIT;
     session_table[lcsock].sock = 0;
 
     iov[0].iov_base = &msg;
@@ -325,28 +326,28 @@ void *start_session(void *arg) {
     for (;;) {
 	ret = readv(lcsock, iov, iovcnt);
 	if (ret < 0) {
-	    logger(RSRV_LOG_ERROR, "start_session(%d): readv(): %s\n", lcsock, strerror(errno));
+	    logger(PINE_LOG_ERROR, "start_session(%d): readv(): %s\n", lcsock, strerror(errno));
 	    goto last;
 	} else if (ret == 0) {
-	    logger(RSRV_LOG_DEBUG, "start_session(%d): connection closed by remote peer\n", lcsock);
+	    logger(PINE_LOG_DEBUG, "start_session(%d): connection closed by remote peer\n", lcsock);
 	    goto last;
 	}
-	req = ntohl(msg.rm_typ);
+	req = ntohl(msg.pm_typ);
 	switch (req) {
-	case RSRV_REQ_BIND:
-	    do_bind(lcsock, ntohl(msg.rm_val));
+	case PINE_REQ_BIND:
+	    do_bind(lcsock, ntohl(msg.pm_val));
 	    break;
-	case RSRV_REQ_LISTEN:
-	    do_listen(lcsock, ntohl(msg.rm_val));
+	case PINE_REQ_LISTEN:
+	    do_listen(lcsock, ntohl(msg.pm_val));
 	    break;
-	case RSRV_REQ_ACCEPT:
+	case PINE_REQ_ACCEPT:
 	    do_accept(lcsock);
 	    break;
-	case RSRV_REQ_CONNECT:
-	    do_connect(lcsock, ntohl(msg.rm_val));
+	case PINE_REQ_CONNECT:
+	    do_connect(lcsock, ntohl(msg.pm_val));
 	    goto last;
 	default:
-	    logger(RSRV_LOG_ERROR, "start_session(%d): unexpected request received: %d\n", lcsock, req);
+	    logger(PINE_LOG_ERROR, "start_session(%d): unexpected request received: %d\n", lcsock, req);
 	    break;;
 	}
     }
@@ -355,6 +356,6 @@ void *start_session(void *arg) {
     close(lcsock);
     close_session(lcsock);
 
-    logger(RSRV_LOG_DEBUG, "start_session(%d): finished\n", lcsock);
+    logger(PINE_LOG_DEBUG, "start_session(%d): finished\n", lcsock);
     return NULL;
 }

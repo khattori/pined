@@ -1,27 +1,27 @@
 ****************************************************************
- [RServer]
+ [pined]
                             README
 
 ****************************************************************
  
-RServer is a proxy server to enables to access a private server inside
+Pined is a proxy server to enables to access a private server inside
 a firewall.
 
 In your server application, replace socket API call, such as bind and
 accept, into wrapper call (provided in librssock) for these APIs so
-that the server register its listening port to an RServer. The RServer
+that the server register its listening port to an pined. The pined
 will create a server socket behalf of the server in a private
-network. The RServer relays a connection to the private sever when a
-client connect to the RServer.
+network. The pined relays a connection to the private sever when a
+client connect to the pined.
 
 
-A typical use of RServer is as follows:
+A typical use of pined is as follows:
 
                                      FIREWALL
                        <internet>       ||     <private network>
- +--------+       +---------+           ||        +--------+
- | Client |+---->o| RServer |o<---------||--------| Server |+
- +--------+|+     +---------+ port 8888 ||        +--------+|
+ +--------+       +-------+             ||        +--------+
+ | Client |+---->o| Pined |o<-----------||--------| Server |+
+ +--------+|+     +-------+ port 8888   ||        +--------+|
   +--------+|                 (default) ||         +--------+
    +--------+
 
@@ -29,34 +29,34 @@ A typical use of RServer is as follows:
  Directories
 =============
 
-A source package rserver-x.x.x.tar.gz is expanded into the following
+A source package pined-x.x.x.tar.gz is expanded into the following
 directories:
 
-  rserver-x.x.x/README		this file
-                rscommon.h	common header file
-                librssock/	library source files
-                rserver/	rserver source files  
+  pined-x.x.x/README		this file
+                pinecommon.h	common header file
+                libpinesock/	library source files
+                pined/		pined source files  
                 samples/	sample programs
                 test/		test files
 
  Platform
 ==========
 
-Currently RServer is available under only Linux.
+Currently pined is available under only Linux.
 
 
  Install
 =========
 
-- librssock
+- libpinesock
 
-% cd librssock
+% cd libpinesock
 % make
 % sudo make install
 
-- rserver
+- pined
 
-% cd rserver
+% cd pined
 % make
 % sudo make install
 
@@ -64,20 +64,20 @@ Currently RServer is available under only Linux.
  API
 =====
 
-RServer library provides rs_* functions, which serve as corresponding
+pined library provides ps_* functions, which serve as corresponding
 socket API functions.
 
-- int rs_bind(int sock, int my_port, struct sockaddr *rs_addr, socklen_t rs_addrlen)
+- int ps_bind(int sock, int my_port, struct sockaddr *ps_addr, socklen_t ps_addrlen)
 
-- int rs_listen(int sock, int backlog)
+- int ps_listen(int sock, int backlog)
 
-- int rs_accept(int ssock, struct sockaddr *caddr, socklen_t *caddr_len);
+- int ps_accept(int ssock, struct sockaddr *caddr, socklen_t *caddr_len);
 
 
  Example
 =========
 
-The following example program illustrates the use of RServer library
+The following example program illustrates the use of pined library
 in typical server application.
 
 	// create a socket for listening
@@ -86,24 +86,24 @@ in typical server application.
 		perror("socket()");
 		exit(EXIT_FAILURE);
 	}
-	// set rsaddr to the address of RServer
-	memset(&rsaddr, 0, sizeof rsaddr);
-	rsaddr.sin_family      = AF_INET;
-	rsaddr.sin_port        = htons(8888);
-	rsaddr.sin_addr.s_addr = rserver_ipaddr;
+	// set psaddr to the address of pined
+	memset(&psaddr, 0, sizeof psaddr);
+	psaddr.sin_family      = AF_INET;
+	psaddr.sin_port        = htons(8888);
+	psaddr.sin_addr.s_addr = pserver_ipaddr;
 
 	port = ...; // set a port number for listening socket
-	ret = rs_bind(so, port, (struct sockaddr *)&rsaddr, sizeof rsaddr);
+	ret = ps_bind(so, port, (struct sockaddr *)&psaddr, sizeof psaddr);
 	if (ret < 0) {
 		exit(EXIT_FAILURE);
 	}
 
-	ret = rs_listen(so, SOMAXCONN);
+	ret = ps_listen(so, SOMAXCONN);
 	if (ret < 0) {
 		exit(EXIT_FAILURE);
 	}
 	// wait connection from client
-	cso = rs_accept(so, NULL, NULL);
+	cso = ps_accept(so, NULL, NULL);
 	if (cso < 0) {
 		exit(EXIT_FAILURE);
 	}
@@ -112,10 +112,10 @@ in typical server application.
  Protocol
 ==========
 
-rs_bind(s,port,addr):
-           +----------+        +---------+        +--------+
-           |PrivateSrv|        | RServer |        | Client |
-           +----------+        +---------+        +--------+
+ps_bind(s,port,addr):
+           +----------+        +-------+          +--------+
+           |PrivateSrv|        | Pined |          | Client |
+           +----------+        +-------+          +--------+
                 |                   |                  |
                 |                   |                  |
 connect(s,addr) |  REQ_BIND<port>   |ls=accept(s)      |
@@ -126,7 +126,7 @@ connect(s,addr) |  REQ_BIND<port>   |ls=accept(s)      |
                 |                   |                  |
                 |                   |                  |
 
-rs_listen(s,bl):
+ps_listen(s,bl):
                 |                   |                  |
                 |  REQ_LISTEN(bl)   |                  |
                 |------------------>|                  |
@@ -141,7 +141,7 @@ Connection request from client:
                 |<------------------|set acceptable    |
                 |                   |                  |
 
-rs_accept(s):
+ps_accept(s):
                 |                   |                  |
                 |    REQ_ACCEPT     |                  |
                 |------------------>|if acceptable     |
@@ -156,5 +156,4 @@ connect(s,addr) |-------------------->|ls'=accept(s)   |
                 |                   | |                |
 
 ---
-Copyright (C) 2008- HATTORI All Rights Reserved.
-$Id$
+Copyright (c) 2008 Kenta Hattori All Rights Reserved.

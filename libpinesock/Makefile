@@ -5,10 +5,10 @@ PREFIX	= /usr/local
 
 CFLAGS	= -Wall -g $(INCLUDES) -fPIC
 
-TARGET	= librssock.so
+TARGET	= libpinesock.so
 
-SRCS	= rssock.c
-INCS	= rssock.h
+SRCS	= pinesock.c
+INCS	= pinesock.h
 
 OBJS	= $(SRCS:.c=.o)
 

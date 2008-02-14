@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include "rscommon.h"
+#include "pinecommon.h"
 #include "session.h"
 #include "logger.h"
 
@@ -17,7 +17,7 @@ static char program_string[] = "pined";
 static char version_string[] = "0.1";
 static char *log_file = "/var/log/pinedlog";
 
-int g_rs_port = RSRV_DEFAULT_PORT;
+int g_rs_port = PINE_DEFAULT_PORT;
 int g_debug_mode = 0;
 
 static void print_usage(void) {
@@ -40,12 +40,12 @@ static int create_socket(void) {
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
-		logger(RSRV_LOG_ERROR, "create_socket: socket(): %s\n", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: socket(): %s\n", strerror(errno));
 		return -1;
 	}
 	ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
 	if (ret < 0) {
-		logger(RSRV_LOG_ERROR, "create_socket: setsockopt(): %s\n", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: setsockopt(): %s\n", strerror(errno));
 		return -1;
 	}
 	memset(&addr, 0, sizeof addr);
@@ -54,12 +54,12 @@ static int create_socket(void) {
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	ret = bind(sock, (struct sockaddr *)&addr, sizeof addr);
 	if (ret < 0) {
-		logger(RSRV_LOG_ERROR, "create_socket: bind(): %s\n", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: bind(): %s\n", strerror(errno));
 		return -1;
 	}
 	ret = listen(sock, SOMAXCONN);
 	if (ret < 0) {
-		logger(RSRV_LOG_ERROR, "create_socket: listen(): %s\n", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: listen(): %s\n", strerror(errno));
 		return -1;
 	}
 
@@ -74,17 +74,17 @@ static int do_pined(int ssock) {
 	for (;;) {
 		rsock = accept(ssock, NULL, 0);
 		if (rsock < 0) {
-			logger(RSRV_LOG_ERROR, "do_pined: accept(): %s\n", strerror(errno));
+			logger(PINE_LOG_ERROR, "do_pined: accept(): %s\n", strerror(errno));
 			return -1;
 		}
 		err = pthread_create(&thread, NULL, start_session, &rsock);
 		if (err != 0) {
-			logger(RSRV_LOG_ERROR, "do_pined: pthread_create(): %s\n", strerror(err));
+			logger(PINE_LOG_ERROR, "do_pined: pthread_create(): %s\n", strerror(err));
 			return -1;
 		}
 		err = pthread_detach(thread);
 		if (err != 0) {
-			logger(RSRV_LOG_ERROR, "do_pined: pthread_detach(): %s\n", strerror(err));	
+			logger(PINE_LOG_ERROR, "do_pined: pthread_detach(): %s\n", strerror(err));	
 			return -1;
 		}
 	}
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'l':
 			level = atoi(optarg);
-			if (level < 0 || level >= RSRV_LOG_MAX) {
+			if (level < 0 || level >= PINE_LOG_MAX) {
 				exit(EXIT_FAILURE);
 			}
 			log_setlevel(level);
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	logger(RSRV_LOG_INFO, "start pined");
+	logger(PINE_LOG_INFO, "start pined");
 
 	sock = create_socket();
 	if (sock < 0) {
