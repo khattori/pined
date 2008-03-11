@@ -1,0 +1,10 @@
+2008-03-11  Kenta HATTORI  <hattori@bach.tatta.org>
+
+	* version 0.0.2 released.
+
+	* add monitoring for error status to select() system call
+
+	* add version.c and verison.h
+
+	* remove redundant '\n' from logging message.
+
