@@ -12,9 +12,9 @@
 #include "pinecommon.h"
 #include "session.h"
 #include "logger.h"
+#include "version.h"
 
 static char program_string[] = "pined";
-static char version_string[] = "0.0.1";
 static char *log_file = "/var/log/pinedlog";
 
 int g_rs_port = PINE_DEFAULT_PORT;
@@ -40,12 +40,12 @@ static int create_socket(void) {
 
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock < 0) {
-		logger(PINE_LOG_ERROR, "create_socket: socket(): %s\n", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: socket(): %s", strerror(errno));
 		return -1;
 	}
 	ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
 	if (ret < 0) {
-		logger(PINE_LOG_ERROR, "create_socket: setsockopt(): %s\n", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: setsockopt(): %s", strerror(errno));
 		return -1;
 	}
 	memset(&addr, 0, sizeof addr);
@@ -54,14 +54,15 @@ static int create_socket(void) {
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	ret = bind(sock, (struct sockaddr *)&addr, sizeof addr);
 	if (ret < 0) {
-		logger(PINE_LOG_ERROR, "create_socket: bind(): %s\n", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: bind(): %s", strerror(errno));
 		return -1;
 	}
 	ret = listen(sock, SOMAXCONN);
 	if (ret < 0) {
-		logger(PINE_LOG_ERROR, "create_socket: listen(): %s\n", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: listen(): %s", strerror(errno));
 		return -1;
 	}
+	logger(PINE_LOG_DEBUG, "create_socket: socket(%d) started to listen at port %d",  sock, g_rs_port);
 
 	return sock;
 }
@@ -74,17 +75,17 @@ static int do_pined(int ssock) {
 	for (;;) {
 		rsock = accept(ssock, NULL, 0);
 		if (rsock < 0) {
-			logger(PINE_LOG_ERROR, "do_pined: accept(): %s\n", strerror(errno));
+			logger(PINE_LOG_ERROR, "do_pined: accept(): %s", strerror(errno));
 			return -1;
 		}
 		err = pthread_create(&thread, NULL, start_session, &rsock);
 		if (err != 0) {
-			logger(PINE_LOG_ERROR, "do_pined: pthread_create(): %s\n", strerror(err));
+			logger(PINE_LOG_ERROR, "do_pined: pthread_create(): %s", strerror(err));
 			return -1;
 		}
 		err = pthread_detach(thread);
 		if (err != 0) {
-			logger(PINE_LOG_ERROR, "do_pined: pthread_detach(): %s\n", strerror(err));	
+			logger(PINE_LOG_ERROR, "do_pined: pthread_detach(): %s", strerror(err));	
 			return -1;
 		}
 	}

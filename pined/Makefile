@@ -4,7 +4,8 @@ TARGET	= pined
 SRCS	= \
 	pined.c	\
 	session.c	\
-	logger.c
+	logger.c	\
+	version.c
 
 CFLAGS	= -Wall -g -I../
 LIBS	= -lpthread
