@@ -22,5 +22,9 @@ install	: $(TARGET)
 	@/sbin/ldconfig
 	@echo "done."
 
+.PHONY	: clean clean-all
 clean	:
 	rm -fr $(OBJS) $(TARGET)
+
+clean-all	:
+	rm -fr $(OBJS) $(TARGET) *~

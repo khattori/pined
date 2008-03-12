@@ -18,5 +18,9 @@ $(TARGET)	: $(OBJS)
 install	:
 	cp $(TARGET) $(PREFIX)/bin/$(TARGET)
 
+.PHONY:	clean clean-all
 clean	:
 	rm -fr $(OBJS) $(TARGET)
+
+clean-all	:
+	rm -fr $(OBJS) $(TARGET) *~

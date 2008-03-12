@@ -45,7 +45,12 @@ static int create_socket(void) {
 	}
 	ret = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
 	if (ret < 0) {
-		logger(PINE_LOG_ERROR, "create_socket: setsockopt(): %s", strerror(errno));
+		logger(PINE_LOG_ERROR, "create_socket: setsockopt(SO_REUSEADDR): %s", strerror(errno));
+		return -1;
+	}
+	ret = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &option, sizeof option);
+	if (ret < 0) {
+		logger(PINE_LOG_ERROR, "create_socket: setsockopt(SO_KEEPALIVE): %s", strerror(errno));
 		return -1;
 	}
 	memset(&addr, 0, sizeof addr);

@@ -141,7 +141,7 @@ static int do_bind(int lcsock, int port) {
     option = 1;
     ret = setsockopt(rssock, SOL_SOCKET, SO_REUSEADDR, &option, sizeof option);
     if (ret < 0) {
-	logger(PINE_LOG_ERROR, "do_bind(%d): setsockopt(): %s", lcsock, strerror(errno));
+	logger(PINE_LOG_ERROR, "do_bind(%d): setsockopt(SO_REUSEADDR): %s", lcsock, strerror(errno));
 	send_mesg(lcsock, PINE_NAK, errno);
 	close(rssock);
 	return -1;

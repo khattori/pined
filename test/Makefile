@@ -11,3 +11,6 @@ $(TARGET)	: $(OBJS)
 
 clean	:
 	rm -fr $(OBJS) $(TARGET)
+
+clean-all	:
+	rm -fr $(OBJS) $(TARGET) *~
