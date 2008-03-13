@@ -1,3 +1,9 @@
+2008-03-13  Kenta HATTORI  <hattori@bach.tatta.org>
+
+	* add connection information to log message
+
+	* set SO_KEEPALIVE option and TCP_KEEPIDLE to 300 sec.
+
 2008-03-11  Kenta HATTORI  <hattori@bach.tatta.org>
 
 	* version 0.0.2 released.
