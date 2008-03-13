@@ -20,6 +20,7 @@ clean-all :
 	cd $(LIBPS_SRC) && $(MAKE) clean-all
 	cd test && $(MAKE) clean-all
 	cd samples && $(MAKE) clean-all
+	rm *~
 
 PINED_VER=`cat VERSION`
 PINED_DIR=pined-$(PINED_VER)
@@ -28,8 +29,10 @@ package	: clean-all
 	@echo "const char version_string[] = \"$(PINED_VER)\";" > $(PINED_SRC)/version.c
 	tar zcvf pined.tar.gz ./ \
 		--exclude .svn		\
+		--exclude *~		\
 		--exclude htdoc		\
 		--exclude pined.tar.gz	\
+		--exclude pined*.tar.gz	\
 		--exclude $(PINED_DIR)
 	@if [ -d $(PINED_DIR) ]; then rm -rf $(PINED_DIR); fi
 	@mkdir $(PINED_DIR)
