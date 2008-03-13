@@ -8,6 +8,7 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 
 #include "pinecommon.h"
 #include "session.h"
@@ -23,7 +24,7 @@
 typedef struct stbl_ent {
     int stat;	
     int sock;
-    struct sockaddr	addr;
+    struct sockaddr_in	addr;
     socklen_t	alen;
 } stbl_ent_t;
 
@@ -55,7 +56,7 @@ static int send_mesg(int so, int type, int value) {
 }
 
 static int wait_acceptable(int lcsock, int rssock) {
-    fd_set rfds, efds;
+    fd_set rfds;
     int n;
     int ret;
 
@@ -64,10 +65,8 @@ static int wait_acceptable(int lcsock, int rssock) {
     FD_ZERO(&rfds);
     FD_SET(lcsock, &rfds);
     FD_SET(rssock, &rfds);
-    FD_ZERO(&efds);
-    FD_SET(lcsock, &efds);
     n = MAX(lcsock, rssock) + 1;
-    ret = select(n, &rfds, NULL, &efds, NULL);
+    ret = select(n, &rfds, NULL, NULL, NULL);
     if (ret < 0) {
 	logger(PINE_LOG_ERROR, "wait_acceptable(%d,%d): select(): %s", lcsock, rssock, strerror(errno));
 	send_mesg(lcsock, PINE_NAK, -1);
@@ -77,10 +76,6 @@ static int wait_acceptable(int lcsock, int rssock) {
 	session_table[rssock].stat = PINE_STAT_ACCEPTABLE;
 	send_mesg(lcsock, PINE_ACK, 0);
         logger(PINE_LOG_DEBUG, "wait_acceptable(%d,%d): become acceptabled", lcsock, rssock);
-    }
-    if (FD_ISSET(lcsock, &efds)) {
-        logger(PINE_LOG_ERROR, "wait_acceptable(%d,%d): %d become error", lcsock);
-	return -1;
     }
 
     logger(PINE_LOG_DEBUG, "wait_acceptable(%d,%d) completed", lcsock, rssock);
@@ -161,6 +156,7 @@ static int do_bind(int lcsock, int port) {
     session_table[lcsock].stat = PINE_STAT_BOUND;
     session_table[lcsock].sock = rssock;
     session_table[rssock].stat = PINE_STAT_INIT;
+    session_table[rssock].addr = addr;
     return send_mesg(lcsock, PINE_ACK_BIND, rssock);
 }
 
@@ -191,7 +187,7 @@ static int do_listen(int lcsock, int backlog) {
 }
 
 static int do_accept(int lcsock) {
-    struct sockaddr addr;
+    struct sockaddr_in addr;
     socklen_t addrlen;
     int stat = session_table[lcsock].stat;
     int rssock = session_table[lcsock].sock;
@@ -213,14 +209,14 @@ static int do_accept(int lcsock) {
 	return 0;
     }
 
-    rcsock = accept(rssock, &addr, &addrlen);
+    rcsock = accept(rssock, (struct sockaddr *)&addr, &addrlen);
     if (rcsock < 0) {
 	logger(PINE_LOG_ERROR, "do_accept(%d): accept(): %s", lcsock,  strerror(errno));
 	send_mesg(lcsock, PINE_NAK, errno);
 	return -1;
     }
     session_table[rssock].stat = PINE_STAT_LISTENING;
-    logger(PINE_LOG_DEBUG, "do_accept(%d): accepted for remote peer: %d", lcsock, rcsock);
+    logger(PINE_LOG_INFO, "connection accepted from client: %s, on port: %d", inet_ntoa(addr.sin_addr), ntohs(session_table[rssock].addr.sin_port));
 
     if (send_mesg(lcsock, PINE_ACK_ACCEPT, rcsock) < 0) {
 	logger(PINE_LOG_ERROR, "do_accept(%d): failure to send reply message", lcsock);

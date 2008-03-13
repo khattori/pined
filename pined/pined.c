@@ -8,11 +8,15 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
 
 #include "pinecommon.h"
 #include "session.h"
 #include "logger.h"
 #include "version.h"
+
+#define PINE_KEEP_INTERVAL 300
 
 static char program_string[] = "pined";
 static char *log_file = "/var/log/pinedlog";
@@ -53,6 +57,12 @@ static int create_socket(void) {
 		logger(PINE_LOG_ERROR, "create_socket: setsockopt(SO_KEEPALIVE): %s", strerror(errno));
 		return -1;
 	}
+	option = PINE_KEEP_INTERVAL;
+	ret = setsockopt(sock, IPPROTO_TCP, TCP_KEEPIDLE, &option, sizeof option);
+	if (ret < 0) {
+		logger(PINE_LOG_ERROR, "create_socket: setsockopt(TCP_KEEPIDLE): %s", strerror(errno));
+		return -1;
+	}
 	memset(&addr, 0, sizeof addr);
 	addr.sin_family      = AF_INET;
 	addr.sin_port        = htons(g_rs_port);
@@ -74,15 +84,18 @@ static int create_socket(void) {
 
 static int do_pined(int ssock) {
 	pthread_t thread;
+	struct sockaddr_in addr;
+	socklen_t addrlen = sizeof addr;
 	int rsock;
 	int err;
 
 	for (;;) {
-		rsock = accept(ssock, NULL, 0);
+		rsock = accept(ssock, (struct sockaddr *)&addr, &addrlen);
 		if (rsock < 0) {
 			logger(PINE_LOG_ERROR, "do_pined: accept(): %s", strerror(errno));
 			return -1;
 		}
+		logger(PINE_LOG_INFO, "connection accepted from server: %s", inet_ntoa(addr.sin_addr));
 		err = pthread_create(&thread, NULL, start_session, &rsock);
 		if (err != 0) {
 			logger(PINE_LOG_ERROR, "do_pined: pthread_create(): %s", strerror(err));
