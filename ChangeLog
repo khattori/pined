@@ -1,6 +1,8 @@
 2008-03-13  Kenta HATTORI  <hattori@bach.tatta.org>
 
-	* add connection information to log message
+	* version 0.0.3 released.
+
+	* add connection information to log message.
 
 	* set SO_KEEPALIVE option and TCP_KEEPIDLE to 300 sec.
 
@@ -8,7 +10,7 @@
 
 	* version 0.0.2 released.
 
-	* add monitoring for error status to select() system call
+	* add monitoring for error status to select() system call.
 
 	* add version.c and verison.h
 
